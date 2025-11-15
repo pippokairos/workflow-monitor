@@ -10,8 +10,10 @@ import (
 )
 
 type Client struct {
-	jira        *jira.Client
-	projectKeys []string
+	jira         *jira.Client
+	statusReview string
+	statusDone   string
+	projectKeys  []string
 }
 
 func NewClient(cfg *config.Config) (*Client, error) {
@@ -26,17 +28,18 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	}
 
 	return &Client{
-		jira:        client,
-		projectKeys: cfg.AtlassianProjectKeys,
+		jira:         client,
+		statusReview: cfg.AtlassianStatusReview,
+		statusDone:   cfg.AtlassianStatusDone,
+		projectKeys:  cfg.AtlassianProjectKeys,
 	}, nil
 }
 
-func (c *Client) FetchDoneTickets() ([]jira.Issue, error) {
-	jql := "assignee = currentUser() AND status = Done AND updated >= -30d"
+func (c *Client) FetchMyIssuesInReviewOrDone() ([]jira.Issue, error) {
+	jql := fmt.Sprintf("assignee = currentUser() AND updated >= -30d AND status IN (%s, %s)", c.statusReview, c.statusDone)
 	if len(c.projectKeys) > 0 {
 		jql += fmt.Sprintf(" AND project IN (%s)", strings.Join(c.projectKeys, ","))
 	}
-	debug.Printf("jql: %+v", jql)
 
 	options := &jira.SearchOptionsV2{Fields: []string{"*all"}}
 

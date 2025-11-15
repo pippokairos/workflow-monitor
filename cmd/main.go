@@ -4,10 +4,11 @@ import (
 	"flag"
 	"log"
 
+	"github.com/pippokairos/workflow-monitor/internal/analyzer"
 	"github.com/pippokairos/workflow-monitor/internal/atlassian"
 	"github.com/pippokairos/workflow-monitor/internal/config"
 	"github.com/pippokairos/workflow-monitor/internal/debug"
-	"github.com/pippokairos/workflow-monitor/internal/github"
+	"github.com/pippokairos/workflow-monitor/internal/gh"
 )
 
 func main() {
@@ -32,21 +33,39 @@ func main() {
 	}
 	debug.Printf("Atlassian client created successfully")
 
-	githubClient := github.NewClient(cfg)
+	ghClient := gh.NewClient(cfg)
 	debug.Printf("GitHub client created successfully")
 
-	doneTickets, err := atlassianClient.FetchDoneTickets()
+	myIssues, err := atlassianClient.FetchMyIssuesInReviewOrDone()
 	if err != nil {
-		log.Fatalf("Failed to fetch done tickets: %v", err)
+		log.Fatalf("Failed to fetch my issues: %v", err)
 		return
 	}
-	debug.Printf("Fetched %d done tickets", len(doneTickets))
+	debug.Printf("Fetched %d issues of mine", len(myIssues))
 
-	myOpenPRs, otherOpenPRs, err := githubClient.FetchOpenPRs()
+	openPRs, err := ghClient.FetchOpenPRs()
 	if err != nil {
-		log.Fatalf("Failed to fetch open PRs: %v", err)
+		log.Fatalf("Failed to fetch my open PRs: %v", err)
 		return
 	}
-	debug.Printf("Fetched %d open PRs of mine", len(myOpenPRs))
-	debug.Printf("Fetched %d open PRs of others", len(otherOpenPRs))
+	debug.Printf("Fetched %d open PRs: %+v", len(openPRs), openPRs)
+
+	prsNeedingMyReview, err := ghClient.FetchPRsNeedingMyReview()
+	if err != nil {
+		log.Fatalf("Failed to fetch PRs needing my review: %v", err)
+		return
+	}
+	debug.Printf("Fetched %d PRs needing my review: %+v", len(prsNeedingMyReview), prsNeedingMyReview)
+
+	m := analyzer.NewMatcher(cfg.IssuePattern)
+	issueIDToOpenPRs := m.IssueIDToPRs(openPRs)
+	debug.Printf("issueIDToMyOpenPRs: %+v", issueIDToOpenPRs)
+
+	insights, err := analyzer.GenerateInsights(myIssues, issueIDToOpenPRs, prsNeedingMyReview, cfg)
+	if err != nil {
+		log.Fatalf("Failed to generate insights: %v", err)
+		return
+	}
+
+	debug.Printf("Insights: %v", insights)
 }
