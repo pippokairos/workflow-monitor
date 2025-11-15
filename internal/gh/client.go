@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/google/go-github/v79/github"
 	"github.com/pippokairos/workflow-monitor/internal/config"
@@ -26,40 +27,64 @@ func NewClient(cfg *config.Config) *Client {
 }
 
 func (c *Client) FetchOpenPRs() ([]PullRequest, error) {
-	var openPRs []PullRequest
+	var allOpenPRs []PullRequest
+	var mu sync.Mutex
+	ctx := context.Background()
 
 	for i := range c.repos {
 		owner, repo := getOwnerAndRepo(c.repos[i])
 		options := &github.PullRequestListOptions{State: "open"}
-		githubPRs, resp, err := c.github.PullRequests.List(context.Background(), owner, repo, options)
+		githubPRs, resp, err := c.github.PullRequests.List(ctx, owner, repo, options)
 		debug.Printf("GitHub PullRequests List response: %+v", resp)
-		if err != nil || len(githubPRs) == 0 {
+		if err != nil {
 			return nil, err
 		}
 
-		openPRs := make([]PullRequest, 0, len(githubPRs))
+		if len(githubPRs) == 0 {
+			continue
+		}
+
+		var wg sync.WaitGroup
+
 		for _, githubPR := range githubPRs {
-			reviews, resp, err := c.github.PullRequests.ListReviews(context.Background(), owner, repo, githubPR.GetNumber(), nil)
-			debug.Printf("GitHub PullRequest ListReviews response: %+v", resp)
-			if err != nil {
-				return nil, err
-			}
+			wg.Add(1)
+			go func(githubPR *github.PullRequest) {
+				defer wg.Done()
 
-			var approvers []string
-			for _, review := range reviews {
-				if review.GetState() == "APPROVED" {
-					reviewer := review.GetUser().GetLogin()
-					if !slices.Contains(approvers, reviewer) {
-						approvers = append(approvers, reviewer)
-					}
+				approvers, err := c.FetchApprovers(ctx, owner, repo, githubPR)
+				if err != nil {
+					debug.Printf("Error fetching approvers: %v", err)
+					return
 				}
-			}
 
-			openPRs = append(openPRs, *ToPullRequest(githubPR, approvers))
+				mu.Lock()
+				allOpenPRs = append(allOpenPRs, *ToPullRequest(githubPR, approvers))
+				mu.Unlock()
+			}(githubPR)
+		}
+
+		wg.Wait()
+	}
+
+	return allOpenPRs, nil
+}
+
+func (c *Client) FetchApprovers(ctx context.Context, owner, repo string, githubPR *github.PullRequest) ([]string, error) {
+	reviews, resp, err := c.github.PullRequests.ListReviews(ctx, owner, repo, githubPR.GetNumber(), nil)
+	debug.Printf("GitHub PullRequest ListReviews response: %+v", resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch reviews for PR #%d: %w", githubPR.GetNumber(), err)
+	}
+
+	var approvers []string
+	for _, review := range reviews {
+		approver := review.GetUser().GetLogin()
+		if review.GetState() == "APPROVED" && !slices.Contains(approvers, approver) {
+			approvers = append(approvers, approver)
 		}
 	}
 
-	return openPRs, nil
+	return approvers, nil
 }
 
 // This needs to be a separate call, because the PullRequests.List method does not support filtering by review requested.
