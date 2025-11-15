@@ -4,6 +4,7 @@ go 1.24.4
 
 require (
 	github.com/andygrunwald/go-jira v1.17.0
+	github.com/google/go-github/v79 v79.0.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

@@ -31,20 +31,20 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) FetchDoneTickets(projectKeys []string) ([]jira.Issue, error) {
+func (c *Client) FetchDoneTickets() ([]jira.Issue, error) {
 	jql := "assignee = currentUser() AND status = Done AND updated >= -30d"
 	if len(c.projectKeys) > 0 {
-		jql += fmt.Sprintf(" AND project IN (%s)", strings.Join(projectKeys, ","))
+		jql += fmt.Sprintf(" AND project IN (%s)", strings.Join(c.projectKeys, ","))
 	}
-	debug.Printf("jql: %+v\n", jql)
+	debug.Printf("jql: %+v", jql)
 
 	options := &jira.SearchOptionsV2{Fields: []string{"*all"}}
 
 	// TODO: handle pagination?
 	issues, resp, err := c.jira.Issue.SearchV2JQL(jql, options)
 
-	debug.Printf("Jira response: %+v\n", resp)
-	debug.Printf("Response: %+v\n", resp.Response)
+	debug.Printf("Jira response: %+v", resp)
+	debug.Printf("Response: %+v", resp.Response)
 
 	return issues, err
 }

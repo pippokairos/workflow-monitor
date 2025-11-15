@@ -13,6 +13,11 @@ type Config struct {
 	AtlassianEmail       string   `yaml:"atlassian_email"`
 	AtlassianToken       string   `yaml:"atlassian_token"`
 	AtlassianProjectKeys []string `yaml:"atlassian_project_keys"`
+
+	// GitHub
+	GitHubToken    string   `yaml:"github_token"`
+	GitHubRepos    []string `yaml:"github_repos"`
+	GitHubUsername string   `yaml:"github_username"`
 }
 
 func Load(path string) (*Config, error) {
