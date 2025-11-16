@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pippokairos/workflow-monitor/internal/config"
@@ -33,19 +35,22 @@ func main() {
 		log.Fatalf("Failed to create data fetcher: %v", err)
 	}
 
+	if debug.Enabled {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		insights, err := fetcher.FetchAll(ctx)
+		if err != nil {
+			log.Fatalf("Failed to fetch data: %v", err)
+		}
+
+		debug.Printf("Insights: %v", insights)
+		return
+	}
+
 	p := tea.NewProgram(ui.InitialModel(fetcher), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error running program: %v\n", err)
 		os.Exit(1)
 	}
-
-	// ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	// defer cancel()
-	//
-	// insights, err := fetcher.FetchAll(ctx)
-	// if err != nil {
-	// 	log.Fatalf("Failed to fetch data: %v", err)
-	// }
-	//
-	// debug.Printf("Insights: %v", insights)
 }
