@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
+	"time"
 
 	"github.com/pippokairos/workflow-monitor/internal/analyzer"
 	"github.com/pippokairos/workflow-monitor/internal/atlassian"
@@ -26,6 +28,9 @@ func main() {
 	debug.Printf("Atlassian URL: %s", cfg.AtlassianURL)
 	debug.Printf("Project Keys: %v", cfg.AtlassianProjectKeys)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	atlassianClient, err := atlassian.NewClient(cfg)
 	if err != nil {
 		log.Fatalf("Failed to create Atlassian client: %v", err)
@@ -43,14 +48,14 @@ func main() {
 	}
 	debug.Printf("Fetched %d issues of mine", len(myIssues))
 
-	openPRs, err := ghClient.FetchOpenPRs()
+	openPRs, err := ghClient.FetchOpenPRs(ctx)
 	if err != nil {
 		log.Fatalf("Failed to fetch my open PRs: %v", err)
 		return
 	}
 	debug.Printf("Fetched %d open PRs: %+v", len(openPRs), openPRs)
 
-	prsNeedingMyReview, err := ghClient.FetchPRsNeedingMyReview()
+	prsNeedingMyReview, err := ghClient.FetchPRsNeedingMyReview(ctx)
 	if err != nil {
 		log.Fatalf("Failed to fetch PRs needing my review: %v", err)
 		return

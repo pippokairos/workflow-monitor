@@ -26,10 +26,9 @@ func NewClient(cfg *config.Config) *Client {
 	}
 }
 
-func (c *Client) FetchOpenPRs() ([]PullRequest, error) {
+func (c *Client) FetchOpenPRs(ctx context.Context) ([]PullRequest, error) {
 	var allOpenPRs []PullRequest
 	var mu sync.Mutex
-	ctx := context.Background()
 
 	for i := range c.repos {
 		owner, repo, err := getOwnerAndRepo(c.repos[i])
@@ -93,14 +92,14 @@ func (c *Client) FetchApprovers(ctx context.Context, owner, repo string, githubP
 }
 
 // This needs to be a separate call, because the PullRequests.List method does not support filtering by review requested.
-func (c *Client) FetchPRsNeedingMyReview() ([]PullRequest, error) {
+func (c *Client) FetchPRsNeedingMyReview(ctx context.Context) ([]PullRequest, error) {
 	query := fmt.Sprintf("is:pr is:open review-requested:%s", c.username)
 	for i := range c.repos {
 		query += fmt.Sprintf(" repo:%s", c.repos[i])
 	}
 
 	opts := &github.SearchOptions{}
-	result, _, err := c.github.Search.Issues(context.Background(), query, opts)
+	result, _, err := c.github.Search.Issues(ctx, query, opts)
 	if err != nil {
 		return nil, err
 	}
