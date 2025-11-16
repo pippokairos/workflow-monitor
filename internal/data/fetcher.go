@@ -3,7 +3,9 @@ package data
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/andygrunwald/go-jira"
 	"github.com/pippokairos/workflow-monitor/internal/analyzer"
 	"github.com/pippokairos/workflow-monitor/internal/atlassian"
 	"github.com/pippokairos/workflow-monitor/internal/config"
@@ -39,23 +41,47 @@ func NewFetcher(cfg *config.Config) (*Fetcher, error) {
 }
 
 func (f *Fetcher) FetchAll(ctx context.Context) (*analyzer.Insights, error) {
-	myIssues, err := f.atlassianClient.FetchMyIssuesInReviewOrDone()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch my issues: %w", err)
-	}
-	debug.Printf("Fetched %d issues of mine", len(myIssues))
+	var myIssues []jira.Issue
+	var openPRs, prsNeedingMyReview []gh.PullRequest
+	var myIssuesErr, openPRsErr, prsNeedingMyReviewErr error
 
-	openPRs, err := f.ghClient.FetchOpenPRs(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch my open PRs: %w", err)
-	}
-	debug.Printf("Fetched %d open PRs: %+v", len(openPRs), openPRs)
+	wg := sync.WaitGroup{}
 
-	prsNeedingMyReview, err := f.ghClient.FetchPRsNeedingMyReview(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch PRs needing my review: %w", err)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		myIssues, myIssuesErr = f.atlassianClient.FetchMyIssuesInReviewOrDone()
+		debug.Printf("Fetched %d issues of mine", len(myIssues))
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		openPRs, openPRsErr = f.ghClient.FetchOpenPRs(ctx)
+		debug.Printf("Fetched %d open PRs: %+v", len(openPRs), openPRs)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		prsNeedingMyReview, prsNeedingMyReviewErr = f.ghClient.FetchPRsNeedingMyReview(ctx)
+		debug.Printf("Fetched %d PRs needing my review: %+v", len(prsNeedingMyReview), prsNeedingMyReview)
+	}()
+
+	wg.Wait()
+
+	if myIssuesErr != nil {
+		return nil, fmt.Errorf("failed to fetch my issues: %v", myIssuesErr)
 	}
-	debug.Printf("Fetched %d PRs needing my review: %+v", len(prsNeedingMyReview), prsNeedingMyReview)
+	if openPRsErr != nil {
+		return nil, fmt.Errorf("failed to fetch open PRs: %v", openPRsErr)
+	}
+	if prsNeedingMyReviewErr != nil {
+		return nil, fmt.Errorf("failed to fetch PRs needing my review: %v", prsNeedingMyReviewErr)
+	}
 
 	issueIDToOpenPRs := f.matcher.IssueIDToPRs(openPRs)
 	debug.Printf("issueIDToMyOpenPRs: %+v", issueIDToOpenPRs)
