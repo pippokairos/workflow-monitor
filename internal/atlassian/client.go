@@ -36,18 +36,21 @@ func NewClient(cfg *config.Config) (*Client, error) {
 }
 
 func (c *Client) FetchMyIssuesInReviewOrDone() ([]jira.Issue, error) {
-	jql := fmt.Sprintf("assignee = currentUser() AND updated >= -30d AND status IN (%s, %s)", c.statusReview, c.statusDone)
+	jql := fmt.Sprintf("assignee = currentUser() AND updated >= -14d AND status IN (%s, %s)", c.statusReview, c.statusDone)
 	if len(c.projectKeys) > 0 {
 		jql += fmt.Sprintf(" AND project IN (%s)", strings.Join(c.projectKeys, ","))
 	}
+	jql += " ORDER BY updated DESC"
 
 	options := &jira.SearchOptionsV2{Fields: []string{"*all"}}
 
 	// TODO: handle pagination?
 	issues, resp, err := c.jira.Issue.SearchV2JQL(jql, options)
-
 	debug.Printf("Jira response: %+v", resp)
 	debug.Printf("Response: %+v", resp.Response)
+	if err != nil {
+		return nil, err
+	}
 
 	return issues, err
 }

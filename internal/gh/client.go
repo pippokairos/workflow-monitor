@@ -32,7 +32,12 @@ func (c *Client) FetchOpenPRs() ([]PullRequest, error) {
 	ctx := context.Background()
 
 	for i := range c.repos {
-		owner, repo := getOwnerAndRepo(c.repos[i])
+		owner, repo, err := getOwnerAndRepo(c.repos[i])
+		if err != nil {
+			debug.Printf("Error parsing repo %s: %v", c.repos[i], err)
+			continue
+		}
+
 		options := &github.PullRequestListOptions{State: "open"}
 		githubPRs, resp, err := c.github.PullRequests.List(ctx, owner, repo, options)
 		debug.Printf("GitHub PullRequests List response: %+v", resp)
@@ -112,7 +117,11 @@ func (c *Client) FetchPRsNeedingMyReview() ([]PullRequest, error) {
 	return prs, nil
 }
 
-func getOwnerAndRepo(repoCfg string) (string, string) {
+func getOwnerAndRepo(repoCfg string) (string, string, error) {
 	parts := strings.Split(repoCfg, "/")
-	return parts[0], parts[1]
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid repo format: %s (expected: owner/repo)", repoCfg)
+	}
+
+	return parts[0], parts[1], nil
 }
