@@ -62,7 +62,7 @@ func (c *Client) FetchOpenPRs(ctx context.Context) ([]PullRequest, error) {
 				}
 
 				mu.Lock()
-				allOpenPRs = append(allOpenPRs, *ToPullRequest(githubPR, approvers))
+				allOpenPRs = append(allOpenPRs, *ToInternalPullRequest(githubPR, approvers))
 				mu.Unlock()
 			}(githubPR)
 		}
@@ -106,11 +106,7 @@ func (c *Client) FetchPRsNeedingMyReview(ctx context.Context) ([]PullRequest, er
 
 	var prs []PullRequest
 	for _, issue := range result.Issues {
-		prs = append(prs, PullRequest{
-			Username:  issue.GetUser().GetLogin(),
-			Title:     issue.GetTitle(),
-			Approvers: []string{}, // They are not available in the search result, but they are not needed in this context.
-		})
+		prs = append(prs, *ToPullRequest(issue))
 	}
 
 	return prs, nil

@@ -3,23 +3,54 @@ package gh
 import "github.com/google/go-github/v79/github"
 
 type PullRequest struct {
-	Username  string
-	Title     string
-	Approvers []string
+	URL        string
+	Number     int
+	Title      string
+	State      string
+	BranchName string
+	Author     string
+	Repo       string
+	Approvers  []string
 }
 
-func ToPullRequest(pr *github.PullRequest, approvers []string) *PullRequest {
-	var username, title string
+func ToInternalPullRequest(pr *github.PullRequest, approvers []string) *PullRequest {
+	var author, title string
 	if pr.User.Login != nil {
-		username = *pr.User.Login
+		author = *pr.User.Login
 	}
 	if pr.Head != nil && pr.Head.Label != nil {
 		title = *pr.Head.Label
 	}
 
 	return &PullRequest{
-		Username:  username,
-		Title:     title,
-		Approvers: approvers,
+		URL:        pr.GetHTMLURL(),
+		Number:     pr.GetNumber(),
+		Title:      title,
+		State:      pr.GetState(),
+		BranchName: pr.GetHead().GetRef(),
+		Author:     author,
+		Repo:       pr.GetBase().GetRepo().GetFullName(),
+		Approvers:  approvers,
+	}
+}
+
+func ToPullRequest(issue *github.Issue) *PullRequest {
+	var author, title string
+	if issue.User.Login != nil {
+		author = *issue.User.Login
+	}
+	if issue.Title != nil {
+		title = *issue.Title
+	}
+
+	return &PullRequest{
+		URL:        issue.GetHTMLURL(),
+		Number:     issue.GetNumber(),
+		Title:      title,
+		State:      issue.GetState(),
+		BranchName: "", // N/A
+		Author:     author,
+		Repo:       "",         // N/A
+		Approvers:  []string{}, // N/A
 	}
 }
