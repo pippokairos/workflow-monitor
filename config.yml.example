@@ -1,0 +1,15 @@
+atlassian_url: https://owner.atlassian.net
+atlassian_email: user@example.com
+atlassian_token: Xxx
+atlassian_project_keys:
+  - PRJ1
+  - PRJ2
+
+github_token: Yyy
+github_username: username
+github_repos:
+  - owner/repo1
+  - owner/repo2
+
+issue_pattern: '([A-Z]+-\d+)'
+
