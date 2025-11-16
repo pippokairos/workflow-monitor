@@ -2,6 +2,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -39,5 +40,41 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
 	return &cfg, nil
+}
+
+func (cfg *Config) Validate() error {
+	if cfg.AtlassianURL == "" {
+		return fmt.Errorf("atlassian_url is required")
+	}
+
+	if cfg.AtlassianEmail == "" {
+		return fmt.Errorf("atlassian_email is required")
+	}
+
+	if cfg.AtlassianToken == "" {
+		return fmt.Errorf("atlassian_token is required")
+	}
+
+	if cfg.GitHubUsername == "" {
+		return fmt.Errorf("github_username is required")
+	}
+
+	if cfg.GitHubToken == "" {
+		return fmt.Errorf("github_token is required")
+	}
+
+	if cfg.IssuePattern == "" {
+		return fmt.Errorf("issue_pattern is required")
+	}
+
+	if len(cfg.GitHubRepos) == 0 {
+		return fmt.Errorf("at least one github_repo is required")
+	}
+
+	return nil
 }
