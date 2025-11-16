@@ -18,7 +18,7 @@ func main() {
 	flag.Parse()
 	debug.Enabled = *debugFlag
 
-	cfg, err := config.Load("config.yaml")
+	cfg, err := config.Load("config.yml")
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -33,7 +33,7 @@ func main() {
 		log.Fatalf("Failed to create data fetcher: %v", err)
 	}
 
-	p := tea.NewProgram(ui.InitialModel(fetcher))
+	p := tea.NewProgram(ui.InitialModel(fetcher), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error running program: %v\n", err)
 		os.Exit(1)

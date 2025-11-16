@@ -4,19 +4,21 @@ import (
 	"context"
 	"os/exec"
 	"runtime"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pippokairos/workflow-monitor/internal/data"
 )
 
-func fetchDataCmd(fetcher *data.Fetcher) tea.Cmd {
+func fetchDataCmd(fetcher *data.Fetcher, startTime time.Time) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		insights, err := fetcher.FetchAll(ctx)
-
+		duration := time.Since(startTime)
 		return fetchCompleteMsg{
 			insights: insights,
 			err:      err,
+			duration: duration,
 		}
 	}
 }

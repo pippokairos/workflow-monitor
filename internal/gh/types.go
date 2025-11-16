@@ -1,6 +1,10 @@
 package gh
 
-import "github.com/google/go-github/v79/github"
+import (
+	"strings"
+
+	"github.com/google/go-github/v79/github"
+)
 
 type PullRequest struct {
 	URL        string
@@ -35,12 +39,16 @@ func ToInternalPullRequest(pr *github.PullRequest, approvers []string) *PullRequ
 }
 
 func ToPullRequest(issue *github.Issue) *PullRequest {
-	var author, title string
+	var author, title, repo string
 	if issue.User.Login != nil {
 		author = *issue.User.Login
 	}
 	if issue.Title != nil {
 		title = *issue.Title
+	}
+	if issue.RepositoryURL != nil {
+		parts := strings.Split(*issue.RepositoryURL, "/")
+		repo = parts[len(parts)-1]
 	}
 
 	return &PullRequest{
@@ -50,7 +58,7 @@ func ToPullRequest(issue *github.Issue) *PullRequest {
 		State:      issue.GetState(),
 		BranchName: "", // N/A
 		Author:     author,
-		Repo:       "",         // N/A
+		Repo:       repo,
 		Approvers:  []string{}, // N/A
 	}
 }
