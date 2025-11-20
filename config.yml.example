@@ -1,12 +1,15 @@
 atlassian_url: https://owner.atlassian.net
 atlassian_email: user@example.com
 atlassian_token: Xxx
+atlassian_status_review: Code Review
+atlassian_status_done: Done
 atlassian_project_keys:
   - PRJ1
   - PRJ2
 
-github_token: Yyy
 github_username: username
+github_token: Yyy
+github_required_approvers: 2
 github_repos:
   - owner/repo1
   - owner/repo2
