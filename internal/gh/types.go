@@ -18,18 +18,15 @@ type PullRequest struct {
 }
 
 func ToInternalPullRequest(pr *github.PullRequest, approvers []string) *PullRequest {
-	var author, title string
+	var author string
 	if pr.User.Login != nil {
 		author = *pr.User.Login
-	}
-	if pr.Head != nil && pr.Head.Label != nil {
-		title = *pr.Head.Label
 	}
 
 	return &PullRequest{
 		URL:        pr.GetHTMLURL(),
 		Number:     pr.GetNumber(),
-		Title:      title,
+		Title:      pr.GetTitle(),
 		State:      pr.GetState(),
 		BranchName: pr.GetHead().GetRef(),
 		Author:     author,

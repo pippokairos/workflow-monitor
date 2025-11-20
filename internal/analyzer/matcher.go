@@ -21,9 +21,9 @@ func (m *Matcher) IssueIDToPRs(prs []gh.PullRequest) map[string][]gh.PullRequest
 	issueIDToPRs := make(map[string][]gh.PullRequest, len(prs))
 
 	for _, pr := range prs {
-		issueID := m.getIssueID(pr.Title)
+		issueID := m.getIssueID(pr.BranchName)
 		if issueID == nil {
-			debug.Printf("No issue ID found in branch name: %s", pr.Title)
+			debug.Printf("No issue ID found in branch name: %s", pr.BranchName)
 			continue
 		}
 

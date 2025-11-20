@@ -22,7 +22,6 @@ type ReviewNeededPR gh.PullRequest
 type ReviewedNotInQAPR struct {
 	IssueID     string
 	PullRequest gh.PullRequest
-	Approvers   []string
 }
 
 func GenerateInsights(
@@ -34,7 +33,7 @@ func GenerateInsights(
 	return &Insights{
 		DoneNotMergedPRs:   GetDoneNotMergedPRs(issues, issueIDToOpenPRs, cfg.AtlassianStatusDone),
 		NeedReviewPRs:      GetReviewNeededPRs(prsNeedingMyReview),
-		ReviewedNotInQAPRs: GetReviewedNotInQAPRs(issues, issueIDToOpenPRs, cfg.GitHubRequiredApprovers),
+		ReviewedNotInQAPRs: GetReviewedNotInQAPRs(issues, issueIDToOpenPRs, cfg.GitHubRequiredApprovers, cfg.AtlassianStatusReview),
 	}, nil
 }
 
@@ -74,9 +73,15 @@ func GetReviewNeededPRs(prsNeedingMyReview []gh.PullRequest) []ReviewNeededPR {
 	return reviewNeededPRs
 }
 
-func GetReviewedNotInQAPRs(issues []jira.Issue, issueIDToOpenPRs map[string][]gh.PullRequest, requiredApprovers int) []ReviewedNotInQAPR {
+func GetReviewedNotInQAPRs(issues []jira.Issue, issueIDToOpenPRs map[string][]gh.PullRequest, requiredApprovers int, statusReview string) []ReviewedNotInQAPR {
 	reviewedNotInQAPRs := make([]ReviewedNotInQAPR, 0)
 	for i := range issues {
+		if issues[i].Fields == nil ||
+			issues[i].Fields.Status == nil ||
+			issues[i].Fields.Status.Name != statusReview {
+			continue
+		}
+
 		issueID := issues[i].Key
 		prs, ok := issueIDToOpenPRs[issueID]
 		if !ok || len(prs) == 0 {
@@ -85,7 +90,10 @@ func GetReviewedNotInQAPRs(issues []jira.Issue, issueIDToOpenPRs map[string][]gh
 
 		for j := range prs {
 			if len(prs[j].Approvers) >= requiredApprovers {
-				reviewedNotInQAPRs = append(reviewedNotInQAPRs, ReviewedNotInQAPR{})
+				reviewedNotInQAPRs = append(reviewedNotInQAPRs, ReviewedNotInQAPR{
+					IssueID:     issueID,
+					PullRequest: prs[j],
+				})
 			}
 		}
 	}

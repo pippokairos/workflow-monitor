@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -11,14 +12,11 @@ import (
 	"github.com/pippokairos/workflow-monitor/internal/data"
 )
 
-const noItemsFound = "No items found!"
-
 var (
 	primaryColor   = lipgloss.Color("#FFB86C") // Orange
 	secondaryColor = lipgloss.Color("#00FF87") // Bright green
 	tertiaryColor  = lipgloss.Color("#000000") // Black
 	errorColor     = lipgloss.Color("#FF5555") // Red
-	warningColor   = lipgloss.Color("#FFFF55") // Yellow
 	subtleColor    = lipgloss.Color("#6272A4") // Gray
 
 	activeTabStyle = lipgloss.NewStyle().
@@ -47,9 +45,6 @@ var (
 	successBadgeStyle = lipgloss.NewStyle().
 				Foreground(secondaryColor).
 				Bold(true)
-
-	warningBadgeStyle = lipgloss.NewStyle().
-				Foreground(warningColor)
 
 	footerStyle = lipgloss.NewStyle().
 			Foreground(subtleColor).
@@ -272,7 +267,7 @@ func (m model) View() string {
 
 func (m model) renderDoneNotMergedPRs() string {
 	if len(m.insights.DoneNotMergedPRs) == 0 {
-		return successBadgeStyle.Render(noItemsFound)
+		return renderNoItemsFoundMessage()
 	}
 
 	s := ""
@@ -282,11 +277,11 @@ func (m model) renderDoneNotMergedPRs() string {
 			cursor = cursorStyle.Render("▸ ")
 		}
 
-		ticketBadge := warningBadgeStyle.Render(fmt.Sprintf("[%s]", item.IssueID))
+		ticketBadge := numberStyle.Render(fmt.Sprintf("%s", item.IssueID))
 		title := titleStyle.Render(item.PullRequest.Title)
 		prInfo := subtitleStyle.Render(fmt.Sprintf("PR #%d by %s (open)", item.PullRequest.Number, item.PullRequest.Author))
 
-		s += fmt.Sprintf("%s%s %s\n%s  %s\n\n", cursor, ticketBadge, title, cursor, prInfo)
+		s += fmt.Sprintf("%s%s %s\n    %s\n\n", cursor, ticketBadge, title, prInfo)
 	}
 
 	return s
@@ -294,7 +289,7 @@ func (m model) renderDoneNotMergedPRs() string {
 
 func (m model) renderNeedReviewPRs() string {
 	if len(m.insights.NeedReviewPRs) == 0 {
-		return successBadgeStyle.Render(noItemsFound)
+		return renderNoItemsFoundMessage()
 	}
 
 	s := ""
@@ -304,11 +299,11 @@ func (m model) renderNeedReviewPRs() string {
 			cursor = cursorStyle.Render("▸ ")
 		}
 
-		prBadge := numberStyle.Render(fmt.Sprintf("PR #%d", pr.Number))
+		prBadge := numberStyle.Render(fmt.Sprintf("#%d", pr.Number))
 		title := titleStyle.Render(pr.Title)
-		info := subtitleStyle.Render(fmt.Sprintf("by %s in %s", pr.Author, pr.Repo))
+		info := subtitleStyle.Render(fmt.Sprintf("PR by %s in %s", pr.Author, pr.Repo))
 
-		s += fmt.Sprintf("%s%s %s\n%s  %s\n\n", cursor, prBadge, title, cursor, info)
+		s += fmt.Sprintf("%s%s %s\n    %s\n\n", cursor, prBadge, title, info)
 	}
 
 	return s
@@ -316,7 +311,7 @@ func (m model) renderNeedReviewPRs() string {
 
 func (m model) renderReviewedNotInQAPRs() string {
 	if len(m.insights.ReviewedNotInQAPRs) == 0 {
-		return successBadgeStyle.Render(noItemsFound)
+		return renderNoItemsFoundMessage()
 	}
 
 	s := ""
@@ -326,20 +321,24 @@ func (m model) renderReviewedNotInQAPRs() string {
 			cursor = cursorStyle.Render("▸ ")
 		}
 
-		ticketBadge := successBadgeStyle.Render(fmt.Sprintf("[%s]", item.IssueID))
+		ticketBadge := successBadgeStyle.Render(fmt.Sprintf("%s", item.IssueID))
 		title := titleStyle.Render(item.PullRequest.Title)
 
-		approvers := ""
+		approvers := fmt.Sprintf("PR #%d", item.PullRequest.Number)
 		if len(item.PullRequest.Approvers) > 0 {
-			approvers = subtitleStyle.Render(fmt.Sprintf("PR #%d approved by: %v", item.PullRequest.Number, item.PullRequest.Approvers))
+			approvers = subtitleStyle.Render(fmt.Sprintf("%s approved by: %s", approvers, strings.Join(item.PullRequest.Approvers, ", ")))
 		} else {
-			approvers = subtitleStyle.Render(fmt.Sprintf("PR #%d (no approvals yet)", item.PullRequest.Number))
+			approvers = subtitleStyle.Render(fmt.Sprintf("%s - no approvals yet", approvers))
 		}
 
-		warning := warningBadgeStyle.Render("⚠ Ticket not in QA")
+		warning := subtitleStyle.Render("Ticket not in QA")
 
-		s += fmt.Sprintf("%s%s %s\n%s  %s\n%s  %s\n\n", cursor, ticketBadge, title, cursor, approvers, cursor, warning)
+		s += fmt.Sprintf("%s%s %s\n    %s\n    %s\n\n", cursor, ticketBadge, title, approvers, warning)
 	}
 
 	return s
+}
+
+func renderNoItemsFoundMessage() string {
+	return successBadgeStyle.Render("No items found!") + "\n\n\n"
 }
