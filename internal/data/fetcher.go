@@ -53,6 +53,7 @@ func (f *Fetcher) FetchAll(ctx context.Context) (*analyzer.Insights, error) {
 
 		myIssues, myIssuesErr = f.atlassianClient.FetchMyIssuesInReviewOrDone()
 		debug.Printf("Fetched %d issues of mine", len(myIssues))
+		debug.Printf("My issues: %+v", myIssues)
 	}()
 
 	wg.Add(1)
@@ -84,7 +85,7 @@ func (f *Fetcher) FetchAll(ctx context.Context) (*analyzer.Insights, error) {
 	}
 
 	issueIDToOpenPRs := f.matcher.IssueIDToPRs(openPRs)
-	debug.Printf("issueIDToMyOpenPRs: %+v", issueIDToOpenPRs)
+	debug.Printf("issueIDToOpenPRs: %+v", issueIDToOpenPRs)
 
 	return analyzer.GenerateInsights(myIssues, issueIDToOpenPRs, prsNeedingMyReview, f.cfg)
 }

@@ -36,7 +36,7 @@ func NewClient(cfg *config.Config) (*Client, error) {
 }
 
 func (c *Client) FetchMyIssuesInReviewOrDone() ([]jira.Issue, error) {
-	jql := fmt.Sprintf("assignee = currentUser() AND updated >= -14d AND status IN (%s, %s)", c.statusReview, c.statusDone)
+	jql := fmt.Sprintf("assignee = currentUser() AND updated >= -14d AND status IN (\"%s\", \"%s\")", c.statusReview, c.statusDone)
 	if len(c.projectKeys) > 0 {
 		jql += fmt.Sprintf(" AND project IN (%s)", strings.Join(c.projectKeys, ","))
 	}
