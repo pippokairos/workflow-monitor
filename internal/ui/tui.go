@@ -331,9 +331,7 @@ func (m model) renderReviewedNotInQAPRs() string {
 			approvers = subtitleStyle.Render(fmt.Sprintf("%s - no approvals yet", approvers))
 		}
 
-		warning := subtitleStyle.Render("Ticket not in QA")
-
-		s += fmt.Sprintf("%s%s %s\n    %s\n    %s\n\n", cursor, ticketBadge, title, approvers, warning)
+		s += fmt.Sprintf("%s%s %s\n    %s\n\n", cursor, ticketBadge, title, approvers)
 	}
 
 	return s
